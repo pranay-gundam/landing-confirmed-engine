@@ -1,0 +1,8 @@
+Durability is expressed in terms of how much force an object can withstand upon collision.
+
+
+12/3:
+
+There is now an object that one can control the acceleration with. Now begins the calibration of how best 
+to interact with this object. Do the controls affect accerlation and for how long of a duration? To what 
+extent do we have to scale the controls by? All these and more.
