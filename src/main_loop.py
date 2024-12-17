@@ -15,7 +15,7 @@ background.fill(pg.Color('#FFFFFF'))
 
 is_running = True
 
-object_list = [MoveableGameObject('bob', [(500, 500), (510, 500), (510, 510), (500, 510)])]
+object_list = [GravAirForceMovableObject('bob', [(400, 300), (420, 300), (420, 350), (400, 350)])]
 
 def handle_action(objs, events):
     for event in events:
