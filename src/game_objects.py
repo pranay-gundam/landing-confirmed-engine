@@ -91,54 +91,44 @@ class GravAirForceMovableObject(AccelMoveableGameObject):
         self.x_area = max(border, key=lambda point: point[0])[0] - min(border, key=lambda point: point[0])[0]
         self.y_area = max(border, key=lambda point: point[1])[1] - min(border, key=lambda point: point[1])[1]
         
-
-        # dictionary to store forces and their directions
-        self.forces = {}
-        self.forces["grav"] = (9.8/50, np.pi / 2)
-        self.forces["air_resistance_x"] = (calc_air_resistance(self.vel_x, self.drag_coeff, 
-                                                                self.air_density, self.x_area), np.pi)
-        self.forces["air_resistance_y"] = (calc_air_resistance(self.vel_y, self.drag_coeff, 
-                                                                self.air_density, self.y_area), 3 * np.pi / 2)
-
-    def add_force(self, name, force, direction):
-        self.forces[name] = (force, direction)
-
-    def remove_forces(self, names):
-        for name in names:
-            if name in self.forces:
-                del self.forces[name]
+        # forces that persist through updates. list of (magnitude, direction)
+        self.persistant_forces = [
+            (9.8/50, ma.get_dir(ma.MoveAction.DOWN)) # gravity
+        ]
+        
+        # forces that are removed each updated. list of (magnitude, direction)
+        self.temp_forces = []
+        self._add_air_resist() 
+        
+    def _add_air_resist(self):
+        # air resist x
+        self.temp_forces.append((calc_air_resistance(self.vel_x, self.drag_coeff, 
+                                                     self.air_density, self.x_area), ma.get_dir(ma.MoveAction.LEFT)))
+        
+        # air resist y 
+        self.temp_forces.append((calc_air_resistance(self.vel_y, self.drag_coeff, 
+                                                     self.air_density, self.y_area), ma.get_dir(ma.MoveAction.UP)))
+    
+    def _update_accel(self, forces): 
+        for force, direction in forces:
+            self.accel_x += force * np.cos(direction) / self.mass
+            self.accel_y += force * np.sin(direction) / self.mass
 
     def update(self, move_actions = set()):
         self.accel_x = 0
         self.accel_y = 0
+        self.temp_forces = []
         
         for action in move_actions: 
             self.add_action(action)
         
-        self.forces["air_resistance_x"] = (calc_air_resistance(self.vel_x, self.drag_coeff, 
-                                                                self.air_density, self.x_area), np.pi)
-        self.forces["air_resistance_y"] = (calc_air_resistance(self.vel_y, self.drag_coeff, 
-                                                                self.air_density, self.y_area), 3 * np.pi / 2)
+        self._add_air_resist()
+        self._update_accel(self.persistant_forces + self.temp_forces)
         
-        for force, direction in self.forces.values():
-            self.accel_x += force * np.cos(direction) / self.mass
-            self.accel_y += force * np.sin(direction) / self.mass
-        
-        self.remove_forces(['left', 'right', 'up', 'down'])
-
         super().update()
         
     def add_action(self, move_action):
-        
-        match move_action:
-            case ma.MoveAction.UP:
-                self.add_force('up', self.scale, 3 * np.pi / 2)
-            case ma.MoveAction.DOWN:
-                self.add_force('down', self.scale, np.pi / 2)
-            case ma.MoveAction.LEFT:
-                self.add_force('left', self.scale, np.pi)
-            case ma.MoveAction.RIGHT:
-                self.add_force('right', self.scale, 0)
+        self.temp_forces.append((self.scale, ma.get_dir(move_action)))
             
     def is_collided(self, other_obj):
         self_force = self.mass * [self.accel_x, self.accel_y]
