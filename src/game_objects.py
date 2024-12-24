@@ -46,6 +46,9 @@ class AccelMoveableGameObject(GameObject):
         self.shape = sp.affinity.rotate(self.shape, angle=dtheta, origin='center')
 
     def move_ticks(self, dt = 1):
+        
+        print("vel_x: ", self.vel_x)
+        
         self.vel_x += self.accel_x
         self.vel_y += self.accel_y
         self.vel_theta += self.accel_theta
