@@ -16,32 +16,23 @@ is_running = True
 
 object_list = [GravAirForceMovableObject('bob', [(400, 300), (420, 300), (420, 350), (400, 350)])]
 
-def handle_action(objs, events):
-    
-    keys = pg.key.get_pressed()
-    
-    is_left = keys[pg.K_LEFT]
-    is_right = keys[pg.K_RIGHT]
-    is_up = keys[pg.K_UP]
-    
-    if is_up: 
-        for obj in objs:
-            obj.action(ma.MoveAction.UP)
-    
-    if is_left ^ is_right: 
-        for obj in objs:
-            if is_left:
-                obj.action(ma.MoveAction.LEFT)
-            if is_right:
-                obj.action(ma.MoveAction.RIGHT)
-        
 
 def update_objs(objs):
+    
+    move_actions = set()
+    if pg.key.get_pressed()[pg.K_UP]:
+        move_actions.add(ma.MoveAction.UP)
+    if pg.key.get_pressed()[pg.K_DOWN]:
+        move_actions.add(ma.MoveAction.DOWN)
+    if pg.key.get_pressed()[pg.K_LEFT]:
+        move_actions.add(ma.MoveAction.LEFT)
+    if pg.key.get_pressed()[pg.K_RIGHT]:
+        move_actions.add(ma.MoveAction.RIGHT)
+    
     for obj in objs:
-        obj.update()
+        obj.update(move_actions)
 
 def main_loop(objs, surface, events):
-    handle_action(objs, events)
     update_objs(objs)
     for obj in objs:
         obj.draw(surface)

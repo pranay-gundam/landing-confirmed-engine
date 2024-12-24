@@ -47,8 +47,6 @@ class AccelMoveableGameObject(GameObject):
 
     def move_ticks(self, dt = 1):
         
-        print("vel_x: ", self.vel_x)
-        
         self.vel_x += self.accel_x
         self.vel_y += self.accel_y
         self.vel_theta += self.accel_theta
@@ -61,8 +59,8 @@ class AccelMoveableGameObject(GameObject):
 
     def is_collided(self, other_obj):
         return self.shape.intersects(other_obj.shape)
-
-    def action(self, move_action):
+    
+    def add_action(self, move_action):
         scale = 0.1
         if move_action == ma.MoveAction.UP:
             self.accel_y = -scale
@@ -73,7 +71,11 @@ class AccelMoveableGameObject(GameObject):
         if move_action == ma.MoveAction.RIGHT:
             self.accel_x = scale
     
-    def update(self):
+    def update(self, move_actions = set()):
+        
+        for move_action in move_actions:
+            self.add_action(move_action)
+            
         self.move_ticks()
     
 class GravAirForceMovableObject(AccelMoveableGameObject):
@@ -104,28 +106,28 @@ class GravAirForceMovableObject(AccelMoveableGameObject):
             if name in self.forces:
                 del self.forces[name]
 
-    def update(self):
+    def update(self, move_actions = set()):
         self.accel_x = 0
         self.accel_y = 0
+        
+        for action in move_actions: 
+            self.add_action(action)
         
         self.forces["air_resistance_x"] = (calc_air_resistance(self.vel_x, self.drag_coeff, 
                                                                 self.air_density, self.x_area), np.pi)
         self.forces["air_resistance_y"] = (calc_air_resistance(self.vel_y, self.drag_coeff, 
                                                                 self.air_density, self.y_area), 3 * np.pi / 2)
         
-        
-
         for force, direction in self.forces.values():
             self.accel_x += force * np.cos(direction) / self.mass
             self.accel_y += force * np.sin(direction) / self.mass
         
-        
-        super().update()
-
-    def action(self, move_action):
-        scale = 0.6
-        print(self.forces)
         self.remove_forces(['left', 'right', 'up', 'down'])
+
+        super().update()
+        
+    def add_action(self, move_action):
+        scale = 0.6
         
         if move_action == ma.MoveAction.UP:
             self.add_force('up', scale, 3 * np.pi / 2)
