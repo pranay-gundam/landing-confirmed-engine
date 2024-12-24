@@ -2,6 +2,8 @@ from typing import Tuple, List
 import numpy as np
 import shapely as sp
 import pygame as pg
+import move_actions as ma
+
 
 def sign(x):
     return -1 if x < 0 else 1
@@ -57,20 +59,16 @@ class AccelMoveableGameObject(GameObject):
     def is_collided(self, other_obj):
         return self.shape.intersects(other_obj.shape)
 
-    def action(self, event):
+    def action(self, move_action):
         scale = 0.1
-        if event.type == pg.KEYDOWN:
-            if event.key == pg.K_LEFT:
-                self.accel_x = -scale
-
-            if event.key == pg.K_RIGHT:
-                self.accel_x = scale
-
-            if event.key == pg.K_UP:
-                self.accel_y = -scale
-
-            if event.key == pg.K_DOWN:
-                self.accel_y = scale
+        if move_action == ma.MoveAction.UP:
+            self.accel_y = -scale
+        if move_action == ma.MoveAction.DOWN:
+            self.accel_y = scale
+        if move_action == ma.MoveAction.LEFT:
+            self.accel_x = -scale
+        if move_action == ma.MoveAction.RIGHT:
+            self.accel_x = scale
     
     def update(self):
         self.move_ticks()
@@ -121,22 +119,20 @@ class GravAirForceMovableObject(AccelMoveableGameObject):
         
         super().update()
 
-    def action(self, event):
+    def action(self, move_action):
         scale = 0.6
         print(self.forces)
         self.remove_forces(['left', 'right', 'up', 'down'])
-        if event.type == pg.KEYDOWN:
-            if event.key == pg.K_LEFT:
-                self.add_force('left', scale, np.pi)
-
-            if event.key == pg.K_RIGHT:
-                self.add_force('right', scale, 0)
-
-            if event.key == pg.K_UP:
-                self.add_force('up', scale, 3 * np.pi / 2)
-
-            if event.key == pg.K_DOWN:
-                self.add_force('down', scale, np.pi / 2)
+        
+        if move_action == ma.MoveAction.UP:
+            self.add_force('up', scale, 3 * np.pi / 2)
+        if move_action == ma.MoveAction.DOWN:
+            self.add_force('down', scale, np.pi / 2)
+        if move_action == ma.MoveAction.LEFT:
+            self.add_force('left', scale, np.pi)
+        if move_action == ma.MoveAction.RIGHT:
+            self.add_force('right', scale, 0)
+            
 
     def is_collided(self, other_obj):
         self_force = self.mass * [self.accel_x, self.accel_y]
