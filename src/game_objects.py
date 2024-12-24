@@ -92,7 +92,7 @@ class GravAirForceMovableObject(AccelMoveableGameObject):
         self.y_area = max(border, key=lambda point: point[1])[1] - min(border, key=lambda point: point[1])[1]
         
         # forces that persist through updates. list of (magnitude, direction)
-        self.persistant_forces = [
+        self.persistent_forces = [
             (9.8/50, ma.get_dir(ma.MoveAction.DOWN)) # gravity
         ]
         
@@ -123,7 +123,7 @@ class GravAirForceMovableObject(AccelMoveableGameObject):
             self.add_action(action)
         
         self._add_air_resist()
-        self._update_accel(self.persistant_forces + self.temp_forces)
+        self._update_accel(self.persistent_forces + self.temp_forces)
         
         super().update()
         
