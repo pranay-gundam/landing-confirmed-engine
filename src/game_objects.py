@@ -26,7 +26,7 @@ class GameObject:
         pg.draw.polygon(surface, self.color, list(zip(x, y)))
 
 class AccelMoveableGameObject(GameObject):
-    def __init__(self, title: str, border: List[Tuple[float, float]], durability: float = np.inf):
+    def __init__(self, title: str, border: List[Tuple[float, float]], durability: float = np.inf, scale : float = .1):
         super().__init__(title, border, durability=durability)        
         self.accel_x = 0
         self.accel_y = 0
@@ -35,6 +35,7 @@ class AccelMoveableGameObject(GameObject):
         self.vel_x = 0
         self.vel_y = 0
         self.vel_theta = 0
+        self.scale = scale
 
     def move_rectangular(self, dx, dy):
         self.shape = sp.affinity.translate(self.shape, xoff=dx, yoff=dy)
@@ -61,16 +62,19 @@ class AccelMoveableGameObject(GameObject):
         return self.shape.intersects(other_obj.shape)
     
     def add_action(self, move_action):
-        scale = 0.1
-        if move_action == ma.MoveAction.UP:
-            self.accel_y = -scale
-        if move_action == ma.MoveAction.DOWN:
-            self.accel_y = scale
-        if move_action == ma.MoveAction.LEFT:
-            self.accel_x = -scale
-        if move_action == ma.MoveAction.RIGHT:
-            self.accel_x = scale
-    
+        
+        match move_action:
+            case ma.MoveAction.UP:
+                self.accel_y = -self.scale
+            case ma.MoveAction.DOWN:
+                self.accel_y = self.scale
+            case ma.MoveAction.LEFT:
+                self.accel_x = -self.scale
+            case ma.MoveAction.RIGHT:
+                self.accel_x = self.scale
+            case _:
+                pass 
+                    
     def update(self, move_actions = set()):
         
         for move_action in move_actions:
@@ -79,8 +83,8 @@ class AccelMoveableGameObject(GameObject):
         self.move_ticks()
     
 class GravAirForceMovableObject(AccelMoveableGameObject):
-    def __init__(self, title:str, border: List[Tuple[float, float]], durability: float = np.inf, mass: float = 1):
-        super().__init__(title, border, durability=durability)
+    def __init__(self, title:str, border: List[Tuple[float, float]], durability: float = np.inf, mass: float = 1, scale : float = .6):
+        super().__init__(title, border, durability=durability, scale = scale)
         self.mass = mass
         self.broken = False
         
@@ -127,18 +131,19 @@ class GravAirForceMovableObject(AccelMoveableGameObject):
         super().update()
         
     def add_action(self, move_action):
-        scale = 0.6
         
-        if move_action == ma.MoveAction.UP:
-            self.add_force('up', scale, 3 * np.pi / 2)
-        if move_action == ma.MoveAction.DOWN:
-            self.add_force('down', scale, np.pi / 2)
-        if move_action == ma.MoveAction.LEFT:
-            self.add_force('left', scale, np.pi)
-        if move_action == ma.MoveAction.RIGHT:
-            self.add_force('right', scale, 0)
+        match move_action:
+            case ma.MoveAction.UP:
+                self.add_force('up', self.scale, 3 * np.pi / 2)
+            case ma.MoveAction.DOWN:
+                self.add_force('down', self.scale, np.pi / 2)
+            case ma.MoveAction.LEFT:
+                self.add_force('left', self.scale, np.pi)
+            case ma.MoveAction.RIGHT:
+                self.add_force('right', self.scale, 0)
+            case _: 
+                pass
             
-
     def is_collided(self, other_obj):
         self_force = self.mass * [self.accel_x, self.accel_y]
         other_force = other_obj.mass * [other_obj.accel_x, other_obj.accel_y]
