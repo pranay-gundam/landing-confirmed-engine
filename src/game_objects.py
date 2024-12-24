@@ -72,9 +72,7 @@ class AccelMoveableGameObject(GameObject):
                 self.accel_x = -self.scale
             case ma.MoveAction.RIGHT:
                 self.accel_x = self.scale
-            case _:
-                pass 
-                    
+
     def update(self, move_actions = set()):
         
         for move_action in move_actions:
@@ -141,8 +139,6 @@ class GravAirForceMovableObject(AccelMoveableGameObject):
                 self.add_force('left', self.scale, np.pi)
             case ma.MoveAction.RIGHT:
                 self.add_force('right', self.scale, 0)
-            case _: 
-                pass
             
     def is_collided(self, other_obj):
         self_force = self.mass * [self.accel_x, self.accel_y]
