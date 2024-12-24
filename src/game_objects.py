@@ -96,9 +96,8 @@ class GravAirForceMovableObject(AccelMoveableGameObject):
             (9.8/50, ma.get_dir(ma.MoveAction.DOWN)) # gravity
         ]
         
-        # forces that are removed each updated. list of (magnitude, direction)
+        # forces that are cleared each update. list of (magnitude, direction)
         self.temp_forces = []
-        self._add_air_resist() 
         
     def _add_air_resist(self):
         # air resist x
