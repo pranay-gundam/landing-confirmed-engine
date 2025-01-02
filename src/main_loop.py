@@ -1,8 +1,7 @@
 import pygame as pg
 from typing import List, Tuple
 from game_objects import *
-
-
+import move_actions as ma
 
 
 pg.init()
@@ -17,17 +16,23 @@ is_running = True
 
 object_list = [GravAirForceMovableObject('bob', [(400, 300), (420, 300), (420, 350), (400, 350)])]
 
-def handle_action(objs, events):
-    for event in events:
-        for obj in objs:
-            obj.action(event)
 
 def update_objs(objs):
+    
+    move_actions = set()
+    if pg.key.get_pressed()[pg.K_UP]:
+        move_actions.add(ma.MoveAction.UP)
+    if pg.key.get_pressed()[pg.K_DOWN]:
+        move_actions.add(ma.MoveAction.DOWN)
+    if pg.key.get_pressed()[pg.K_LEFT]:
+        move_actions.add(ma.MoveAction.LEFT)
+    if pg.key.get_pressed()[pg.K_RIGHT]:
+        move_actions.add(ma.MoveAction.RIGHT)
+    
     for obj in objs:
-        obj.update()
+        obj.update(move_actions)
 
 def main_loop(objs, surface, events):
-    handle_action(objs, events)
     update_objs(objs)
     for obj in objs:
         obj.draw(surface)

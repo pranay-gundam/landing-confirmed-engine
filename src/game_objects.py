@@ -2,6 +2,8 @@ from typing import Tuple, List
 import numpy as np
 import shapely as sp
 import pygame as pg
+import move_actions as ma
+
 
 def sign(x):
     return -1 if x < 0 else 1
@@ -24,7 +26,7 @@ class GameObject:
         pg.draw.polygon(surface, self.color, list(zip(x, y)))
 
 class AccelMoveableGameObject(GameObject):
-    def __init__(self, title: str, border: List[Tuple[float, float]], durability: float = np.inf):
+    def __init__(self, title: str, border: List[Tuple[float, float]], durability: float = np.inf, scale : float = .1):
         super().__init__(title, border, durability=durability)        
         self.accel_x = 0
         self.accel_y = 0
@@ -33,6 +35,7 @@ class AccelMoveableGameObject(GameObject):
         self.vel_x = 0
         self.vel_y = 0
         self.vel_theta = 0
+        self.scale = scale
 
     def move_rectangular(self, dx, dy):
         self.shape = sp.affinity.translate(self.shape, xoff=dx, yoff=dy)
@@ -44,6 +47,7 @@ class AccelMoveableGameObject(GameObject):
         self.shape = sp.affinity.rotate(self.shape, angle=dtheta, origin='center')
 
     def move_ticks(self, dt = 1):
+        
         self.vel_x += self.accel_x
         self.vel_y += self.accel_y
         self.vel_theta += self.accel_theta
@@ -56,28 +60,29 @@ class AccelMoveableGameObject(GameObject):
 
     def is_collided(self, other_obj):
         return self.shape.intersects(other_obj.shape)
-
-    def action(self, event):
-        scale = 0.1
-        if event.type == pg.KEYDOWN:
-            if event.key == pg.K_LEFT:
-                self.accel_x = -scale
-
-            if event.key == pg.K_RIGHT:
-                self.accel_x = scale
-
-            if event.key == pg.K_UP:
-                self.accel_y = -scale
-
-            if event.key == pg.K_DOWN:
-                self.accel_y = scale
     
-    def update(self):
+    def add_action(self, move_action):
+        
+        match move_action:
+            case ma.MoveAction.UP:
+                self.accel_y = -self.scale
+            case ma.MoveAction.DOWN:
+                self.accel_y = self.scale
+            case ma.MoveAction.LEFT:
+                self.accel_x = -self.scale
+            case ma.MoveAction.RIGHT:
+                self.accel_x = self.scale
+
+    def update(self, move_actions = set()):
+        
+        for move_action in move_actions:
+            self.add_action(move_action)
+            
         self.move_ticks()
     
 class GravAirForceMovableObject(AccelMoveableGameObject):
-    def __init__(self, title:str, border: List[Tuple[float, float]], durability: float = np.inf, mass: float = 1):
-        super().__init__(title, border, durability=durability)
+    def __init__(self, title:str, border: List[Tuple[float, float]], durability: float = np.inf, mass: float = 1, scale : float = .6):
+        super().__init__(title, border, durability=durability, scale = scale)
         self.mass = mass
         self.broken = False
         
@@ -86,58 +91,44 @@ class GravAirForceMovableObject(AccelMoveableGameObject):
         self.x_area = max(border, key=lambda point: point[0])[0] - min(border, key=lambda point: point[0])[0]
         self.y_area = max(border, key=lambda point: point[1])[1] - min(border, key=lambda point: point[1])[1]
         
-
-        # dictionary to store forces and their directions
-        self.forces = {}
-        self.forces["grav"] = (9.8/50, np.pi / 2)
-        self.forces["air_resistance_x"] = (calc_air_resistance(self.vel_x, self.drag_coeff, 
-                                                                self.air_density, self.x_area), np.pi)
-        self.forces["air_resistance_y"] = (calc_air_resistance(self.vel_y, self.drag_coeff, 
-                                                                self.air_density, self.y_area), 3 * np.pi / 2)
-
-    def add_force(self, name, force, direction):
-        self.forces[name] = (force, direction)
-
-    def remove_forces(self, names):
-        for name in names:
-            if name in self.forces:
-                del self.forces[name]
-
-    def update(self):
-        self.accel_x = 0
-        self.accel_y = 0
+        # forces that persist through updates. list of (magnitude, direction)
+        self.persistent_forces = [
+            (9.8/50, ma.get_dir(ma.MoveAction.DOWN)) # gravity
+        ]
         
-        self.forces["air_resistance_x"] = (calc_air_resistance(self.vel_x, self.drag_coeff, 
-                                                                self.air_density, self.x_area), np.pi)
-        self.forces["air_resistance_y"] = (calc_air_resistance(self.vel_y, self.drag_coeff, 
-                                                                self.air_density, self.y_area), 3 * np.pi / 2)
+        # forces that are cleared each update. list of (magnitude, direction)
+        self.temp_forces = []
         
+    def _add_air_resist(self):
+        # air resist x
+        self.temp_forces.append((calc_air_resistance(self.vel_x, self.drag_coeff, 
+                                                     self.air_density, self.x_area), ma.get_dir(ma.MoveAction.LEFT)))
         
-
-        for force, direction in self.forces.values():
+        # air resist y 
+        self.temp_forces.append((calc_air_resistance(self.vel_y, self.drag_coeff, 
+                                                     self.air_density, self.y_area), ma.get_dir(ma.MoveAction.UP)))
+    
+    def _update_accel(self, forces): 
+        for force, direction in forces:
             self.accel_x += force * np.cos(direction) / self.mass
             self.accel_y += force * np.sin(direction) / self.mass
+
+    def update(self, move_actions = set()):
+        self.accel_x = 0
+        self.accel_y = 0
+        self.temp_forces = []
         
+        for action in move_actions: 
+            self.add_action(action)
+        
+        self._add_air_resist()
+        self._update_accel(self.persistent_forces + self.temp_forces)
         
         super().update()
-
-    def action(self, event):
-        scale = 0.6
-        print(self.forces)
-        self.remove_forces(['left', 'right', 'up', 'down'])
-        if event.type == pg.KEYDOWN:
-            if event.key == pg.K_LEFT:
-                self.add_force('left', scale, np.pi)
-
-            if event.key == pg.K_RIGHT:
-                self.add_force('right', scale, 0)
-
-            if event.key == pg.K_UP:
-                self.add_force('up', scale, 3 * np.pi / 2)
-
-            if event.key == pg.K_DOWN:
-                self.add_force('down', scale, np.pi / 2)
-
+        
+    def add_action(self, move_action):
+        self.temp_forces.append((self.scale, ma.get_dir(move_action)))
+            
     def is_collided(self, other_obj):
         self_force = self.mass * [self.accel_x, self.accel_y]
         other_force = other_obj.mass * [other_obj.accel_x, other_obj.accel_y]
